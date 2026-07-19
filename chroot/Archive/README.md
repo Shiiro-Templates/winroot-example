@@ -1,12 +1,3 @@
-# Archive
-
-Deliberately retained, inactive material. Content here should be mostly
-read-only and have enough context to remain understandable.
-
-- `Projects`: completed or abandoned project snapshots.
-- `Documents`: historical personal or administrative records.
-- `Software`: intentionally preserved installers, versions, or artifacts.
-- `Exports`: frozen exports from services or applications.
-
-An archive is a lifecycle state, not an intake queue. Undecided files belong in
-`../Inbox`; active files belong in `../Home` or `../Workspaces`.
+<!-- TODO: translate from README.zh.md (v3) -->
+This file is a placeholder. The authoritative v3 content is in `README.zh.md`.
+Translate after the Chinese version is finalized.
