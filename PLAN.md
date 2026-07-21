@@ -74,13 +74,17 @@ chroot/
 - 与 `.pool` 互补：有 `.pool` 时元数据直接在 `.pool` 之上兄弟位置，**不建 `.META`**；无 `.pool` 但需元数据时用 `.META`。两者通常不共存。
 
 ### 两者关系总结
-//不得使用markdown表格！！！！
-| | 用途 | 版本控制 | 位置 | 典型场景 |
-|---|---|---|---|---|
-| `.pool` | 存储隔层（大非源码） | 忽略 | 分类层，下接散装存储单元 | Devtool/langenv、Build2Use |
-| `.META` | 元数据（无 .pool 时） | 跟踪 | 分类层，下接资产单元 | Projects 分类层 |
 
-两者都在**分类层**，描述其下的单元。区别：`.pool` 下层是大块非源码存储（忽略），`.META` 下层是源码资产（跟踪，单元内部由 git 管）。共同铁律：都贴分类层，离资产/存储单元至少一个目录，绝不进单元内部。
+- `.pool` 目录
+	- 用途：存储隔层（大非源码）
+	- 版本控制：忽略
+	- 位置：分类层，下接散装存储单元
+	- 典型场景：Devtool/envs、Build2Use
+- `.META` 目录
+	- 用途：元数据（无 .pool 时）
+	- 版本控制：跟踪
+	- 位置：分类层，下接资产单元
+	- 典型场景：Projects 分类层
 
 v1 的 `.identity`、`.store` 等 ad-hoc 标记在 v3 中收敛进 `.META` 或 `.pool` 之上的语义文件，不单独保留。点号前缀特殊目录就这两个。
 
@@ -142,7 +146,7 @@ Control/
 ```
 Software/
 ├── Devtool/              # 我开发用的工具集（集体名词，非软件学意义的 toolchain）
-│   ├── langenv/          # 语言环境（语言运行时、编译器、SDK、toolchain）
+│   ├── envs/          # 语言环境（语言运行时、编译器、SDK、toolchain）
 │   │   └── .pool/        #   存储边界，其下散装各语言工具链
 │   ├── ide/              # VS Code 等
 │   │   └── .pool/
@@ -177,16 +181,16 @@ Software/
 └── Scoop/                # 包管理器根，挂顶层（跨 Devtool/Apps，内部自管）
 ```
 
-**Devtool 内部按用途分**（langenv/ide/agent），不再按软件学分类。`Toolchains` 错在用软件学概念命名用户管理边界（IDE/Agent 不是 toolchain）。`sdk_toolchains` 改为 `langenv`，避免读起来像"SDK 和 toolchain 的软件学合集"。
+**Devtool 内部按用途分**（envs/ide/agent），不再按软件学分类。`Toolchains` 错在用软件学概念命名用户管理边界（IDE/Agent 不是 toolchain）。`langenv` 覆盖面不足（Android SDK、Flutter 非语言环境），改为 `envs`，干净友好。
 
 **Devtool 的 `.pool` 层级**（`.pool` 在用途分类层，具体工具在其下）：
 
 ```
-Devtool/langenv/.pool/python314/    # python314 自洽单元，整体作存储，内部不再套 .pool
-Devtool/langenv/.pool/rust/         # 可能由 rustup 接管 .pool/rust/ 的内容
+Devtool/envs/.pool/python314/    # python314 自洽单元，整体作存储，内部不再套 .pool
+Devtool/envs/.pool/rust/         # 可能由 rustup 接管 .pool/rust/ 的内容
 ```
 
-- `.pool` 在用途分类层（langenv/ide/agent），作为该分类的存储边界
+- `.pool` 在用途分类层（envs/ide/agent），作为该分类的存储边界
 - 具体工具（python314、rust、go）在 `.pool` 之下，散装存储
 - 管理语义（工具归属等）在 `.pool` 之上，形式不约定
 - 自洽官方单元（python314）在 `.pool` 下整体存在，不在它内部再套 `.pool`
@@ -214,7 +218,7 @@ Software/Apps/
 - VS Code 扩展：不是本体（卸载 VS Code 不该带走）、不是 config（不是 settings.json）、不是缓存（删了要重装、代表功能选择）。是装在工具上的功能载荷。
 - npm/cargo 全局包同理。
 - 核心属性：**随工具存亡是错的**--升级/重装工具时，Data 该活下来。这是"雷霆清理"担忧的反面：不只别误删，而是别让正常重装连坐清掉投资。
-- 物理分离送一个安全特性：删 `Devtool/langenv/.pool/python314/` 时 `Data/Devtool/python314/` 自动幸存，不靠纪律保证。
+- 物理分离送一个安全特性：删 `Devtool/envs/.pool/python314/` 时 `Data/Devtool/python314/` 自动幸存，不靠纪律保证。
 - dev tool 大多支持改 data home（`*_HOME`、`--extensions-dir` 等），留在 C 盘 AppData 是放弃管理权 -> **提供容器**。
 
 **Caches 不再预建 Packages/Builds/Logs/Downloads**，原因逐条：
@@ -236,21 +240,23 @@ Software/Apps/
 
 ```
 UserSpace/
-├── Desktop/         # Shell Folder 重定向
-├── Documents/       # Shell Folder 重定向
-├── Downloads/       # Shell Folder 重定向（用户发起下载的入口）
-├── Music/           # Shell Folder 重定向
-├── Pictures/        # Shell Folder 重定向
-├── Videos/          # Shell Folder 重定向
+├── Downloads/       # Shell Folder 重定向（用户发起下载入口；流入，非归宿）
+├── Storage/         # 大、重、胖的 Shell Folder 重定向目标（v1 Storage 语义）
+│   ├── Documents/   #   文档
+│   ├── Music/       #   音频
+│   ├── Pictures/    #   图片
+│   └── Videos/      #   视频
 ├── Knowledge/       # 自主内容：笔记、wiki、Obsidian vault
 ├── Collections/     # 自主内容：书签、Github Stars 等
-└── Vault/           # 凭证库：KeePass/1Password 等的库文件  [新增]
+└── Private/         # 凭证库：KeePass/1Password 等的库文件  [新增]
 ```
 
-- **Shell Folders 直接沿用 Windows 原始默认命名**（Desktop/Documents/Downloads/Music/Pictures/Videos），不套 v1 的 `Storage/` 层，也不改名。它们是 Windows 资源管理器左侧栏认识的名字，通过注册表/属性页映射。
-- **Knowledge/Collections 抽出**作为用户自主内容，与 Shell Folder 重定向目标并列。
-- **Vault（凭证）**：凭证是用户资产，由 KeePass/1Password 等专门软件管，不单独占顶层、不进 Control（环境控制层）、不混进软件配置。库文件作为资产放 UserSpace 下。命名 Vault 而非 Secrets，避免语义过重且与软件管理职责对齐。独立加密/备份策略由对应软件负责。
-- README 标注：前六个是 Windows Shell Folder 重定向目标，Knowledge/Collections 是用户自主管理内容，Vault 是凭证库。
+- **Shell Folders 直接沿用 Windows 原始默认命名**，通过注册表/属性页映射，是 Windows 资源管理器左侧栏认识的名字。
+- **Storage 恢复 v1 语义**：收纳大、重、胖、不能用文本编辑器打开的媒体/文档类 shell folder（Documents/Music/Pictures/Videos）。不用 Media--其语义已被滥用；Storage 就是 Storage，有拓展性。
+- **Downloads 不进 Storage**：语义不同，是流入入口不是存储归宿，平铺在 UserSpace。
+- **Desktop 删除**：先不需要，不讨论。
+- **Knowledge/Collections** 作为用户自主内容平铺。
+- **Private（凭证）**：凭证是用户资产，由 KeePass/1Password 等专门软件管，不单独占顶层、不进 Control（环境控制层）、不混进软件配置。命名 Private（Vault 语义不足、私密感不够；Secrets 亦不用）。独立加密/备份策略由对应软件负责。
 - Downloads 冲突自然消解：`Caches/Downloads` 已删，`UserSpace/Downloads` 是唯一下载入口（用户发起）。机器管理的可重下载工件不存在独立目录--它们跟着各自的软件/管理器走。
 
 ### 4. Projects（原 Workspaces，改名 + 仓库语义分配）
@@ -315,10 +321,10 @@ Archive/
 ## 五、删除清单
 
 - `Inbox/` 整个顶层目录（不创建替代；未决定归宿是用户的临时问题，不是结构问题）
-- `State/` 整个顶层目录（语义不明；职责分流：软件配置 -> Software/Configs，凭证 -> UserSpace/Vault）
+- `State/` 整个顶层目录（语义不明；职责分流：软件配置 -> Software/Configs，凭证 -> UserSpace/Private）
 - `Control/Exports/`（语义模糊；导出快照作记录进 Inventory）
 - `Software/PackageManagers/`（作者只用 Scoop，无需通用抽象层；Scoop 直接挂顶层）
-- `Software/Toolchains/`（语义错位；被 `Devtool/langenv` 替代）
+- `Software/Toolchains/`（语义错位；被 `Devtool/envs` 替代）
 - `Software/Installed/`、`Software/Portable/`、`Software/Shared/`、`Software/Shims/`（v2 顶层安装方式轴取消；Installed/Portable 降为 `Apps/` 下子分类，Shared/Shims 删除）
 - `Workspaces/` 顶层名（改名 `Projects/`，内部结构重设）
 - `Archive/Documents/`（分类词无效）
@@ -341,7 +347,7 @@ Archive/
 ### 命名
 - **PascalCase 已确认**用于结构目录，不修改。
 - 结构目录之下保留官方厂商/产品名称。
-- 用户控制的命名空间内（如 Devtool 内的用途分类 langenv/ide/agent、Projects 内的分组、项目、脚本）可用小写/snake_case。
+- 用户控制的命名空间内（如 Devtool 内的用途分类 envs/ide/agent、Projects 内的分组、项目、脚本）可用小写/snake_case。
 - `Data/`、`Caches/` 下的镜像分类用 PascalCase 的 `Devtool`/`Apps`（对齐顶层结构目录）。
 
 ### 格式
