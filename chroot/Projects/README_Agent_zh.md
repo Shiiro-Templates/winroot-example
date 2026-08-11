@@ -1,6 +1,6 @@
 ---
-Author: Agent
-Target: Agent
+AuthorType: Agent
+TargetType: Agent
 ---
 
 # Projects

@@ -1,11 +1,11 @@
 ---
-Author: Agent
-Target: Agent
+AuthorType: Agent
+TargetType: Agent
 ---
 
 # UserSpace
 
-用户的操作空间。"孩子那里不是家"--UserSpace 不是归宿意义上的"家"，
+用户的操作空间。
 是用户操作和资产的所在。
 
 ```text

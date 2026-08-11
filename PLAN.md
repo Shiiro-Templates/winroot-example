@@ -1,6 +1,6 @@
 ---
-Author: Agent
-target: Agent
+AuthorType: Agent
+TargetType: Agent
 ---
 # chroot v3 修改计划
 
