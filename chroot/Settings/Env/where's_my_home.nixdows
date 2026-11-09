@@ -1,0 +1,40 @@
+let
+	# ROOT
+	ROOT = D:\chroot ;
+	PATH = trim($Env:PATH, ";");
+
+	# APP_Package
+	SCOOP = %ROOT%\Program\Scoop ;
+	ChocolateyInstall = %ROOT%\Program\Chocolatey ;
+
+	# CachePath
+	CACHE = %ROOT%\Program\Caches
+	TEMP, TEM = %CACHE%\UserTemp
+
+	# SDK
+	SDK = %ROOT%\Program\SDKs ;
+	SDK_STORE = %SDK%\.pool ;
+	SDKDATA = %SDK%\SDKdata\.pool ;
+
+	## Rust setup
+	RUST_SDK = %SDK_STORE%\Rust ;
+	CARGO_HOME = to_String(%RUST_SDK%\Cargo) ;
+	RUSTUP_HOME = to_String(%RUST_SDK%\RustUp) ;
+	PATH +=  "; {CARGO_HOME}\bin ; {RUSTUP_HOME}\bin " ;
+
+	## Go setup
+	
+	
+in { 
+	System.user.env_Variables.replace = {
+		inherit PATH ;
+		inherit SCOOP ;
+		inherit ChocolateyInstall ;
+		inherit CARGO_HOME ;
+		inherit RUSTUP_HOME ;
+	};
+	System.Folder.pathCreate = {
+		inherit CARGO_HOME ;
+		inherit RUSTUP_HOME ;
+	};
+};
