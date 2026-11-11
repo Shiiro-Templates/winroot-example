@@ -1,0 +1,18 @@
+# CI-only workspace. Everything (environment, tasks, artifacts) stays in .ci.
+[workspace]
+name = "winroot-pack"
+channels = ["conda-forge"]
+platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
+
+[dependencies]
+python = ">=3.11"
+
+# Tasks run with .ci as cwd; pack.py resolves the repo root as its parent.
+[tasks]
+check = "python pack.py check"
+check-list = "python pack.py check --list"
+pack = "python pack.py pack --format all"
+pack-zip = "python pack.py pack --format zip"
+pack-tar = "python pack.py pack --format tar.gz"
+verify = "python pack.py verify --format all"
+clean = "python pack.py clean"
