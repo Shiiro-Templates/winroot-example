@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """Build clean, reproducible zip/tar artifacts of the winroot skeleton.
 
-Packaged content is exactly what remains after the repository plumbing is
-gone: the directory skeleton (including empty directories, written as
-explicit archive members) plus the documents. Git/CI/editor metadata,
-keeper placeholders, prompt sources, the safety tag and the cleaner script
-are never included, so an extracted artifact needs no cleanup step.
+Packaged content is the directory skeleton (including empty directories,
+written as explicit archive members) plus the documents. Git/CI/editor
+metadata, keeper placeholders, tool caches and OS noise are excluded, so
+an extracted artifact is ready to use.
 
 All CI files live under .ci. The repository root is read, never written.
 """
@@ -18,6 +17,7 @@ import os
 import re
 import shutil
 import stat
+import subprocess
 import sys
 import tarfile
 import time
@@ -35,11 +35,8 @@ SAFE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\Z")
 
 EXCLUDED_DIRS = frozenset({".git", ".github", ".ci", ".vscode", ".pixi"})
 CACHE_DIRS = frozenset({"__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache"})
-EXCLUDED_FILES = frozenset({
-    "safetyprotect.tag", "safelycleanandstart.bat", ".gitkeeper",
-    ".ds_store", "thumbs.db", "desktop.ini",
-})
-EXCLUDED_SUFFIXES = (".p", ".pyc", ".pyo")
+EXCLUDED_FILES = frozenset({".ds_store", "thumbs.db", "desktop.ini"})
+EXCLUDED_SUFFIXES = (".pyc", ".pyo")
 
 REPARSE_BIT = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
 DEFAULT_EPOCH = 315532800       # 1980-01-01 00:00:00 UTC, zip lower bound
@@ -110,9 +107,9 @@ def exclusion_reason(name: str, rel: str, path: Path, is_dir: bool,
             return "keeper .gitignore"
         return None
     if lower in EXCLUDED_FILES:
-        return "cleaner/tag or OS noise"
+        return "OS noise"
     if lower.endswith(EXCLUDED_SUFFIXES):
-        return "prompt source or bytecode"
+        return "bytecode"
     return None
 
 
@@ -178,6 +175,43 @@ def resolve_epoch(value: Optional[int]) -> int:
     return epoch
 
 
+def warn_if_git_dirty(source: Path) -> None:
+    """Warn, never fail, when the source working tree is not clean."""
+    if not (source / ".git").exists():
+        return
+
+    def git(*args: str) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            ["git", "-C", str(source), *args],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            text=True, encoding="utf-8", errors="replace", check=False,
+        )
+
+    try:
+        status = git("status", "--porcelain=v1", "--untracked-files=all",
+                     "--ignore-submodules=none")
+        stash = git("stash", "list")
+    except OSError as exc:
+        print(f"WARNING: cannot check git cleanliness (git unavailable): {exc}",
+              file=sys.stderr)
+        return
+    if status.returncode != 0:
+        print(f"WARNING: cannot check git cleanliness: {status.stderr.strip()}",
+              file=sys.stderr)
+        return
+    changed = len([line for line in status.stdout.splitlines() if line.strip()])
+    if stash.returncode != 0:
+        print("WARNING: cannot check git stash list", file=sys.stderr)
+        stashed = 0
+    else:
+        stashed = len([line for line in stash.stdout.splitlines() if line.strip()])
+    if not changed and not stashed:
+        return
+    print(f"WARNING: git is not clean ({changed} changed/untracked entries, "
+          f"{stashed} stash entries); the artifact reflects the current working "
+          "tree, not a committed snapshot.", file=sys.stderr)
+
+
 def make_plan(args: argparse.Namespace) -> Plan:
     source = args.source.resolve()
     out_dir = args.out_dir.resolve()
@@ -188,6 +222,7 @@ def make_plan(args: argparse.Namespace) -> Plan:
     artifact_name = args.artifact_name or (root_name or source.name)
     validate_component(artifact_name, "artifact name")
     epoch = resolve_epoch(args.epoch)
+    warn_if_git_dirty(source)
     entries, skipped = collect(source, out_dir)
     return Plan(source, root_name, artifact_name, epoch, entries, skipped)
 
