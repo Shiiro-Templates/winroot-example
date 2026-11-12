@@ -1,4 +1,5 @@
-# CI-only workspace. Everything (environment, tasks, artifacts) stays in .ci.
+# Platform-neutral CI workspace: no CI-specific variables, CLIs or APIs here.
+# Adapters such as .github/workflows/ only call the tasks below.
 [workspace]
 name = "winroot-pack"
 channels = ["conda-forge"]
@@ -16,3 +17,7 @@ pack-zip = "python pack.py pack --format zip"
 pack-tar = "python pack.py pack --format tar.gz"
 verify = "python pack.py verify --format all"
 clean = "python pack.py clean"
+
+# Single platform-neutral entrypoint; CI adapters only call this task.
+[tasks.ci]
+depends-on = ["check", "pack", "verify"]

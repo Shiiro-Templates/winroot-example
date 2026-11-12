@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: prefix-dev/setup-pixi@v0.11.3
+        with:
+          manifest-path: .ci/pixi.toml
+
+      - name: Build and verify
+        run: pixi run --manifest-path .ci/pixi.toml ci
+
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: winroot-dist
+          path: .ci/dist/*
+          include-hidden-files: true
+          if-no-files-found: error
+
+      - uses: softprops/action-gh-release@v3.0.4
+        if: github.ref_type == 'tag'
+        with:
+          working_directory: .ci/dist
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            *.zip
+            *.tar.gz
+            SHA256SUMS.txt
